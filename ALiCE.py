@@ -5,7 +5,6 @@ import time
 import discord
 import random
 import requests
-import threading
 import asyncio
 from asyncio import coroutines, futures
 import insult
@@ -30,6 +29,51 @@ aplay = False
 
 
 
+
+async def autoplay():
+	await client.wait_until_ready()
+	global player
+	global voice
+	global safe
+	global playlist
+	global aplay
+
+
+	plrange = len(playlist)
+	if aplay is True:
+		if not player.is_playing():
+			if plrang > 1 and safe == True:
+				playlist.pop(0)
+
+				safe = False
+				player.stop()
+				player = await voice.create_ytdl_player(url)
+				player.start()
+				time.sleep(5)
+				safe = True
+			else:
+				playlist.pop(0)
+		if plrange == 1:
+			aplay = False
+	time.sleep(2)
+
+
+async def skip():
+	global safe
+	global player
+	global voice
+	coro = ''
+	if len(playlist) > 1:
+		if safe == False:
+			coro = send("Not yet!")
+		else:
+			playlist.pop(0)
+			coro = p(playlist[0])
+	else:
+		coro = send('Nothing next!')
+	fut = asyncio.run_coroutine_threadsafe(coro, client.loop)
+	await fut.result()
+
 @client.event
 async def on_message(message):
 
@@ -44,6 +88,7 @@ async def on_message(message):
 	
 	global player
 	global voice
+	print(message.content)
 	pv = message.channel.is_private
 	author = message.author
 
@@ -103,6 +148,8 @@ async def on_message(message):
 		except:
 			send('Bad url! - exception')
 
+
+
 	async def p(url):
 		global player
 		global voice
@@ -132,36 +179,9 @@ async def on_message(message):
 			time.sleep(5)
 			safe = True
 
-	async def autoplay():
-		global player
-		global voice
-		global safe
-		global playlist
-		global aplay
-
-		plrange = len(playlist)
-		aplay = True
-		while plrange > 0:
-			time.sleep(1)
-			if aplay == True:
-				if not player.is_playing():
-					if plrang > 1 and safe == True:
-						playlist.pop(0)
-
-						safe = False
-						player.stop()
-						player = await voice.create_ytdl_player(url)
-						player.start()
-						time.sleep(5)
-						safe = True
-					else:
-						playlist.pop(0)
-		aplay = False
-
 	if pv is False:
 		for i in range(len(author.roles)):
 			memroles.append(author.roles[i].id)
-
 	#ban check
 	if (pv is False) and (str(bot_banned) in memroles) and (s[0][0] == '!'):
 		await send(highlight+' '+insult.comeback())
@@ -288,6 +308,8 @@ async def on_message(message):
 					await send('No playlist active!')
 				else:
 					playlist.append(v_url(s[2]))
+				if aplay is False:
+					aplay = True
 			else:
 				await send('Improper syntax!')		
 		elif s[1] == 'skip':
@@ -322,8 +344,8 @@ async def on_message(message):
 					playlist.append(v_url(s[1]))
 				
 					await p(playlist[0])
-#				if aplay is False:
-#					threading.Tread(autoplay())
+				if aplay is False:
+					aplay = True
 			else:
 				await send("Not yet!")
 		else:
@@ -380,5 +402,6 @@ async def on_ready():
 		await client.send_message(s.default_channel, "Hello!")
 	print('Join channel succesful.')
 
+client.loop.create_task(autoplay())
 client.run(usr, password)
 client.close()
