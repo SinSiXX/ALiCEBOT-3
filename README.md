@@ -1,0 +1,2 @@
+# ALiCEBOT
+shitty Discord bot
